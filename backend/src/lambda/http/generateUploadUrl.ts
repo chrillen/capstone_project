@@ -3,6 +3,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } f
 import { generateResponse, getUserId } from '../utils'
 import { generateAttachmentUrl } from '../../businessLogic/Passwords'
 import { createLogger } from '../../utils/logger'
+import { HttpRequestError } from '../../exceptions/customExceptions'
 
 const logger = createLogger('GenerateUploadUrl')
 
@@ -17,6 +18,9 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     return generateResponse( { uploadUrl: signedUrl } ,200);
   } catch(err) {
     logger.error('GenerateUploadUrl failed:', err)
+    if(err instanceof HttpRequestError) {
+      return generateResponse(err.message,err.status)
+    }
     return generateResponse('internal server error',500)
   }
 }

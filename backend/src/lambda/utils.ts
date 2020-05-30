@@ -1,11 +1,16 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { parseUserId } from "../auth/utils";
+import * as crypto from 'crypto'
 import * as AWS  from 'aws-sdk'
 
 // Global variables that can be reused here.
 const s3 = new AWS.S3({
   signatureVersion: 'v4'
 })
+
+// Global variables that can be reused here.
+AWS.config.update({region: 'us-east-1'});
+const ssm = new AWS.SSM({apiVersion: '2014-11-06'});
 
 /**
  * Get presigned url that has upload rights.
@@ -21,6 +26,40 @@ export function getSignedUrl(bucketName: string, key: string, expires: number) :
   Key: key,
   Expires: expires })
 }
+
+export function encryptData(password: string,data: string) : string {
+  const key = crypto.createCipher('aes-128-cbc', password);
+  let encryptedData = key.update(data, 'utf8', 'hex')
+  encryptedData += key.final('hex');
+  return encryptedData
+}
+
+export function decryptData(password: string, data: string) : string {
+  const key = crypto.createDecipher('aes-128-cbc', password);
+  let decryptedData = key.update(data, 'hex', 'utf8')
+  decryptedData += key.final('utf8');
+  return decryptedData
+}
+
+//AWS SSM Code
+export async function saveSecret(email :string, password :string) : Promise<void> {
+  const secretName = email.replace('@','')
+  await ssm.putParameter({
+    Name: secretName, 
+    Value: password, 
+    Type: 'SecureString', 
+    Overwrite: true
+  }).promise()
+};
+
+export async function getSecret(email: string) : Promise<string> {
+  const secretName = email.replace('@','')
+  const result = await ssm.getParameter({
+    Name: secretName,
+    WithDecryption: true 
+  }).promise()
+  return result.Parameter.Value
+};
 
 /**
  * Get a user id from an API Gateway event

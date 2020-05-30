@@ -1,6 +1,11 @@
 service:
   name: srvls-passwords-app
 
+
+package:
+    excludeDevDependencies: false
+
+
 plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
@@ -19,6 +24,8 @@ provider:
   region: ${opt:region, 'us-east-1'}
 
   environment:
+    JWT_SECRET: 'helloworld'
+    USERS_TABLE: Users-${self:provider.stage}
     PASSWORDS_TABLE: Passwords-${self:provider.stage}
     PASSWORDS_ID_INDEX: PasswordsIdIndex
     PASSWORDS_ATTACHMENTS_S3_BUCKET: password-files-33xx-${self:provider.stage}
@@ -38,10 +45,62 @@ custom:
       - name: PasswordUpdateRequest
         contentType: application/json
         schema: ${file(models/update-password-request.json)}
+      - name: UserCreateRequest
+        contentType: application/json
+        schema: ${file(models/create-user-request.json)}
 
-functions:
-  Auth:
-    handler: src/lambda/auth/auth0Authorizer.handler
+functions:  
+  AuthCustom:
+    handler: src/lambda/auth/customAuthorizer.handler
+
+  CreateUser:
+    handler: src/lambda/http/createUser.handler
+    events:
+      - http:
+          method: post
+          path: users
+          cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Create a new user
+            description: Create a new user
+            requestModels:
+              'application/json': UserCreateRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE} 
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource: "*"
+  
+  LoginUser:
+    handler: src/lambda/http/loginUser.handler
+    events:
+      - http:
+          method: post
+          path: users/login
+          cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Login a user
+            description: Login a new user
+            requestModels:
+              'application/json': UserCreateRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE} 
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource: "*"
 
   GetPasswords:
     handler: src/lambda/http/getPasswords.handler
@@ -50,7 +109,7 @@ functions:
           method: get
           path: passwords
           cors: true
-          authorizer: Auth
+          authorizer: AuthCustom
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -64,6 +123,8 @@ functions:
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
+          - ssm:GetParameter
+          - kms:Decrypt
         Resource: "*"
   
   CreatePassword:
@@ -73,7 +134,7 @@ functions:
           method: post
           path: passwords
           cors: true
-          authorizer: Auth
+          authorizer: AuthCustom
           reqValidatorName: RequestBodyValidator
           documentation:
             summary: Create a new password item
@@ -89,6 +150,9 @@ functions:
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
+          - ssm:PutParameter
+          - ssm:GetParameter
+          - kms:Decrypt
         Resource: "*"
 
   UpdatePassword:
@@ -98,7 +162,7 @@ functions:
           method: patch
           path: passwords/{passwordId}
           cors: true
-          authorizer: Auth
+          authorizer: AuthCustom
           reqValidatorName: RequestBodyValidator
           documentation:
             summary: Update an existing password item
@@ -115,6 +179,9 @@ functions:
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
+          - ssm:PutParameter
+          - ssm:GetParameter
+          - kms:Decrypt
         Resource: "*"
 
   DeletePassword:
@@ -124,7 +191,7 @@ functions:
           method: delete
           path: passwords/{passwordId}
           cors: true
-          authorizer: Auth
+          authorizer: AuthCustom
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -144,7 +211,7 @@ functions:
           method: post
           path: passwords/{passwordId}/attachment
           cors: true
-          authorizer: Auth
+          authorizer: AuthCustom
     iamRoleStatements:
     - Effect: Allow
       Action:
@@ -216,6 +283,18 @@ resources:
               Action: 's3:GetObject'
               Resource: 'arn:aws:s3:::${self:provider.environment.PASSWORDS_ATTACHMENTS_S3_BUCKET}/*'
         Bucket: !Ref PasswordsAttachmentBucket
+    
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.USERS_TABLE}
 
     PasswordsTable:
       Type: AWS::DynamoDB::Table

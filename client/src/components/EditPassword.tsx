@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Form, Button } from 'semantic-ui-react'
 import Auth from '../auth/Auth'
-import { getUploadUrl, uploadFile } from '../api/todos-api'
+import { getUploadUrl, uploadFile } from '../api/passwords-api'
 
 enum UploadState {
   NoUpload,
@@ -9,25 +9,25 @@ enum UploadState {
   UploadingFile,
 }
 
-interface EditTodoProps {
+interface EditPasswordProps {
   match: {
     params: {
-      todoId: string
+      passwordId: string
     }
   }
   auth: Auth
 }
 
-interface EditTodoState {
+interface EditPasswordState {
   file: any
   uploadState: UploadState
 }
 
-export class EditTodo extends React.PureComponent<
-  EditTodoProps,
-  EditTodoState
+export class EditPassword extends React.PureComponent<
+EditPasswordProps,
+  EditPasswordState
 > {
-  state: EditTodoState = {
+  state: EditPasswordState = {
     file: undefined,
     uploadState: UploadState.NoUpload
   }
@@ -51,12 +51,12 @@ export class EditTodo extends React.PureComponent<
       }
 
       this.setUploadState(UploadState.FetchingPresignedUrl)
-      const uploadUrl = await getUploadUrl(this.props.auth.getIdToken(), this.props.match.params.todoId)
+      const uploadUrl = await getUploadUrl(this.props.auth.getIdToken(), this.props.match.params.passwordId)
 
       this.setUploadState(UploadState.UploadingFile)
       await uploadFile(uploadUrl, this.state.file)
 
-      alert('File was uploaded!')
+      //alert('File was uploaded!')
     } catch (e) {
       alert('Could not upload a file: ' + e.message)
     } finally {

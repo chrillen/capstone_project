@@ -3,6 +3,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } f
 import { getUserId, generateResponse, parseLimitParameter, parseNextKeyParameter } from '../utils'
 import { getAllPasswordItems } from '../../businessLogic/Passwords'
 import { createLogger } from '../../utils/logger'
+import { HttpRequestError } from '../../exceptions/customExceptions'
 
 const logger = createLogger('getPasswords')
 
@@ -12,6 +13,10 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   const limit = parseLimitParameter(event) || 20
   const nextKey = parseNextKeyParameter(event)
 
+
+  logger.info('getPasswords is done:', globalThis.password)
+
+
   if(!userId) {
     return generateResponse('userId is missing' , 400)
   }
@@ -20,8 +25,11 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     const result = await getAllPasswordItems(userId, limit, nextKey)
     logger.info('getPasswords is done:', result)
     return generateResponse( { items: result.Items, nextKey: result.nextKey} , 200)
-  } catch(err) {
+  } catch(err) {    
     logger.error('getPasswords failed:', err)
+    if(err instanceof HttpRequestError) {
+      return generateResponse(err.message,err.status)
+    }
     return generateResponse('internal server error',500)
   }
 }

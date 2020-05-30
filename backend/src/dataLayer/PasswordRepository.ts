@@ -5,9 +5,13 @@ import { PasswordItem } from "../models/PasswordItem";
 import { PasswordUpdate } from "../models/PasswordUpdate";
 import { Key, DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { encodeNextKey } from '../lambda/utils';
+import { createLogger } from '../utils/logger'
+
 
 const AWSXRay = require('aws-xray-sdk');
 const XAWS = AWSXRay.captureAWS(AWS)
+const logger = createLogger('dataLayer.Password')
+
 
 function createDynamoDBClient() {
   return new XAWS.DynamoDB.DocumentClient()
@@ -17,8 +21,8 @@ export class PasswordRepository {
 
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly passwordTable = process.env.PASSWORD_TABLE,
-    private readonly passwordIndex = process.env.PASSWORD_ID_INDEX){
+    private readonly passwordTable = process.env.PASSWORDS_TABLE,
+    private readonly passwordIndex = process.env.PASSWORDS_ID_INDEX){
   }
 
 /**
@@ -39,7 +43,10 @@ export class PasswordRepository {
     ExpressionAttributeValues: {
       ':userId': userId
     },
-    ProjectionExpression:'passwordId,createdAt,title,dueDate,userName,password,url,attachmentUrl',  
+    ProjectionExpression:'passwordId,createdAt,title,dueDate,userName,password,#url,attachmentUrl',  
+    ExpressionAttributeNames: {
+      '#url': 'url'
+    },
     ScanIndexForward: false
   }).promise()
   return  {  Items: result.Items as PasswordItem[], nextKey:  encodeNextKey(result.LastEvaluatedKey) }
@@ -57,7 +64,7 @@ export class PasswordRepository {
       .get({
         TableName: this.passwordTable,
         Key: {
-          passwordId, userId
+         userId, passwordId 
         }
       })
       .promise()
@@ -93,13 +100,16 @@ export class PasswordRepository {
     const result = await this.docClient.update({
         TableName: this.passwordTable,
         Key: { userId, passwordId },
-        UpdateExpression: "set title=:title, userName=:userName, password=:password,url=:url, attachmentUrl=:attachmentUrl",
+        UpdateExpression: "set title=:title, userName=:userName, password=:password,#url=:url, attachmentUrl=:attachmentUrl",
         ExpressionAttributeValues: {
           ":title": updatedPassword.title,
           ":userName": updatedPassword.userName,
           ":password": updatedPassword.password,
           ":url": updatedPassword.url || '',
           ":attachmentUrl": attachmentUrl || ''
+      },
+      ExpressionAttributeNames: {
+        '#url': 'url'
       },
       ReturnValues: "UPDATED_NEW"
     })
@@ -114,12 +124,15 @@ export class PasswordRepository {
    *
    * @returns nothing
    */
-   async  deletePasswordItem(passwordId :string,userId :string)  {
-    await this.docClient.delete({
+   async  deletePasswordItem(passwordId :string,userId :string) : Promise<PasswordItem> {
+    const result = await this.docClient.delete({
     TableName: this.passwordTable,
     Key: {
-      passwordId, userId
+      userId, passwordId
      }
     }).promise()
+
+    logger.info("delete:",result)
+    return result.$response.data as PasswordItem ?? undefined
   }
 }
