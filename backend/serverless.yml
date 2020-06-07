@@ -24,12 +24,12 @@ provider:
   region: ${opt:region, 'us-east-1'}
 
   environment:
-    JWT_SECRET: 'helloworld'
     USERS_TABLE: Users-${self:provider.stage}
     PASSWORDS_TABLE: Passwords-${self:provider.stage}
     PASSWORDS_ID_INDEX: PasswordsIdIndex
     PASSWORDS_ATTACHMENTS_S3_BUCKET: password-files-33xx-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
+    JWT_SECRET_KEY: JwtSecret-${self:provider.stage}
 
 custom:
   documentation:
@@ -52,6 +52,12 @@ custom:
 functions:  
   AuthCustom:
     handler: src/lambda/auth/customAuthorizer.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - ssm:GetParameter
+          - kms:Decrypt
+        Resource: "*"
 
   CreateUser:
     handler: src/lambda/http/createUser.handler
@@ -76,6 +82,8 @@ functions:
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
+          - ssm:GetParameter
+          - ssm:PutParameter
         Resource: "*"
   
   LoginUser:
@@ -100,6 +108,8 @@ functions:
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
+          - ssm:GetParameter
+          - ssm:PutParameter
         Resource: "*"
 
   GetPasswords:

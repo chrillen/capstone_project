@@ -97,7 +97,8 @@ export class PasswordRepository {
    */
    async  updatePasswordItem(userId: string, passwordId: string, 
     updatedPassword: PasswordUpdate, attachmentUrl?: string) : Promise<PasswordUpdate> {
-    const result = await this.docClient.update({
+      logger.info("before update:",updatedPassword)
+      const result = await this.docClient.update({
         TableName: this.passwordTable,
         Key: { userId, passwordId },
         UpdateExpression: "set title=:title, userName=:userName, password=:password,#url=:url, attachmentUrl=:attachmentUrl",
@@ -114,6 +115,7 @@ export class PasswordRepository {
       ReturnValues: "UPDATED_NEW"
     })
     .promise()
+    logger.info("after update:",result)
     return result.$response.data as PasswordUpdate ?? undefined
   }
   

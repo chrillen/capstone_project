@@ -6,16 +6,31 @@ import { createLogger } from '../utils/logger'
 import { generatePassword, comparePasswords, generateJWT, parseToken, verifyToken, getToken } from '../auth/utils'
 import { JwtPayload } from '../auth/JwtPayload'
 import { HttpRequestError } from '../exceptions/customExceptions'
-import { saveSecret } from '../lambda/utils'
+import { saveSecret, getSecret } from '../lambda/utils'
+import * as uuid from 'uuid'
 
 
 const logger = createLogger('businessLogic.User')
 //create user repository object
 const userRepository = new UserRepository()
 //should be moved to ssm
-const secret = process.env.JWT_SECRET
+const JWT_KEY = process.env.JWT_SECRET_KEY
 
-
+/**
+ * Will initiate the a random secret if its not setup yet and save it in SSM
+ *
+ * @returns promise with the new jwtsecret
+ */
+async function GetJwtSecretInit() : Promise<string> {
+    let jwtSecret = ''
+    try {
+      jwtSecret = await getSecret(JWT_KEY)
+    } catch(err) {
+     jwtSecret = uuid.v4()
+     await saveSecret(JWT_KEY , jwtSecret)    
+   } 
+   return jwtSecret
+}
 
 /**
  * Verify the users jwt token
@@ -25,6 +40,7 @@ const secret = process.env.JWT_SECRET
  */
 export async function verifyUser(token: string): Promise<JwtPayload> {
     const parsedToke = getToken(token)
+    const secret = await GetJwtSecretInit()
     return verify(parsedToke, secret) as JwtPayload
 }
 
@@ -48,7 +64,7 @@ export async function loginUser(createUserRequest: CreateUserRequest): Promise<s
     if(!authValid) {
         throw new HttpRequestError(401,'Unathorized')
     }
-
+    const secret = await GetJwtSecretInit()
     // Generate JWT
     return generateJWT(user.email,secret);
 }
@@ -72,10 +88,9 @@ export async function createUserItem(createUserRequest: CreateUserRequest): Prom
         email: createUserRequest.email,
         password_hash: await generatePassword(createUserRequest.password)
     }
-
-     const jwt = generateJWT(newItem.email ,secret);
+     const secret = await GetJwtSecretInit()
+     const jwt = generateJWT(newItem.email,secret);
      await userRepository.createUserItem(newItem)
      await saveSecret(newItem.email,createUserRequest.password)
-
-    return jwt
+     return jwt
   }

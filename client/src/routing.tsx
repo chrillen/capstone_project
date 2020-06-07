@@ -1,5 +1,5 @@
 import React from 'react'
-import Auth from './auth/Auth'
+import Auth from './api/auth-api'
 import { Router, Route } from 'react-router-dom'
 import Callback from './components/Callback'
 import createHistory from 'history/createBrowserHistory'
@@ -7,6 +7,7 @@ import App from './App';
 const history = createHistory()
 
 const auth = new Auth(history)
+
 
 const handleAuthentication = (props: any) => {
   const location = props.location

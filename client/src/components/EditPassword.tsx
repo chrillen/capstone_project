@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Form, Button } from 'semantic-ui-react'
-import Auth from '../auth/Auth'
+import Auth from '../api/auth-api';
 import { getUploadUrl, uploadFile } from '../api/passwords-api'
 
 enum UploadState {
@@ -55,8 +55,7 @@ EditPasswordProps,
 
       this.setUploadState(UploadState.UploadingFile)
       await uploadFile(uploadUrl, this.state.file)
-
-      //alert('File was uploaded!')
+      alert('File was uploaded!')
     } catch (e) {
       alert('Could not upload a file: ' + e.message)
     } finally {

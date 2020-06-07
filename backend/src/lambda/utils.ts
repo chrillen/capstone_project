@@ -27,6 +27,13 @@ export function getSignedUrl(bucketName: string, key: string, expires: number) :
   Expires: expires })
 }
 
+/**
+ * Encrypt the data with the users masterkey
+ * @param password users masterkey
+ * @param data that will be encrypted
+ *
+ * @returns encryptedData
+ */
 export function encryptData(password: string,data: string) : string {
   const key = crypto.createCipher('aes-128-cbc', password);
   let encryptedData = key.update(data, 'utf8', 'hex')
@@ -34,6 +41,13 @@ export function encryptData(password: string,data: string) : string {
   return encryptedData
 }
 
+/**
+ * Decrypts the data with the users masterkey
+ * @param password users masterkey
+ * @param data encrypted data
+ *
+ * @returns decyptedData
+ */
 export function decryptData(password: string, data: string) : string {
   const key = crypto.createDecipher('aes-128-cbc', password);
   let decryptedData = key.update(data, 'hex', 'utf8')
@@ -41,7 +55,13 @@ export function decryptData(password: string, data: string) : string {
   return decryptedData
 }
 
-//AWS SSM Code
+/**
+ * save the masterkey in AWS SSM securely
+ * @param email is the key for each users masterkey
+ * @param key the masterpassword for the user
+ *
+ * @returns nothing
+ */
 export async function saveSecret(email :string, password :string) : Promise<void> {
   const secretName = email.replace('@','')
   await ssm.putParameter({
@@ -52,6 +72,12 @@ export async function saveSecret(email :string, password :string) : Promise<void
   }).promise()
 };
 
+/**
+ * get the masterkey in AWS SSM securely
+ * @param email is the key for each users masterkey
+ *
+ * @returns the masterpassword of the user.
+ */
 export async function getSecret(email: string) : Promise<string> {
   const secretName = email.replace('@','')
   const result = await ssm.getParameter({

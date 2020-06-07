@@ -20,6 +20,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
   try {
     const newItem = await createPasswordItem(newPassword, userId)
+    //So we will display the new password decrypted for the user.
+    newItem.password = newPassword.password
     logger.info('createPassword password is done')
     return generateResponse( { item: newItem }, 201)
   } catch(err) {

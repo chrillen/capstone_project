@@ -2,11 +2,13 @@ import React, { Component } from 'react'
 import { Link, Route, Router, Switch } from 'react-router-dom'
 import { Grid, Menu, Segment } from 'semantic-ui-react'
 
-import Auth from './auth/Auth'
+import { Login } from './components/Login'
+import { Register } from './components/Register'
 import { EditPassword } from './components/EditPassword'
-import { LogIn } from './components/LogIn'
 import { NotFound } from './components/NotFound'
 import { Passwords } from './components/Passwords'
+import Auth from './api/auth-api'
+import { runInThisContext } from 'vm'
 
 export interface AppProps {}
 
@@ -15,18 +17,31 @@ export interface AppProps {
   history: any
 }
 
-export interface AppState {}
+export interface AppState {
+  callingRegOrNot: boolean
+}
 
 export default class App extends Component<AppProps, AppState> {
   constructor(props: AppProps) {
     super(props)
-
     this.handleLogin = this.handleLogin.bind(this)
     this.handleLogout = this.handleLogout.bind(this)
+    this.handleRegister = this.handleRegister.bind(this)
   }
 
-  handleLogin() {
-    this.props.auth.login()
+  state: AppState = { 
+    callingRegOrNot: false
+  }
+
+
+  handleRegister() {
+    this.setState({ callingRegOrNot: true })
+    return <Register history={this.props.history} auth={this.props.auth} />
+  }
+
+  handleLogin() {    
+    this.setState({ callingRegOrNot: false })
+    return <Login history={this.props.history} auth={this.props.auth} />
   }
 
   handleLogout() {
@@ -59,10 +74,20 @@ export default class App extends Component<AppProps, AppState> {
         <Menu.Item name="home">
           <Link to="/">Home</Link>
         </Menu.Item>
-
+        <Menu.Menu>{this.registerButton()}</Menu.Menu>
         <Menu.Menu position="right">{this.logInLogOutButton()}</Menu.Menu>
       </Menu>
     )
+  }
+
+  registerButton() {
+    if (this.props.auth.isAuthenticated() === false) {
+      return (
+        <Menu.Item name="register" onClick={this.handleRegister}>
+          Register
+        </Menu.Item>
+      )
+    } 
   }
 
   logInLogOutButton() {
@@ -82,8 +107,12 @@ export default class App extends Component<AppProps, AppState> {
   }
 
   generateCurrentPage() {
-    if (!this.props.auth.isAuthenticated()) {
-      return <LogIn auth={this.props.auth} />
+    if (!this.props.auth.isAuthenticated() && this.state.callingRegOrNot === false) {
+      return <Login history={this.props.history} auth={this.props.auth} />
+    }
+
+    if (!this.props.auth.isAuthenticated() && this.state.callingRegOrNot === true) {
+      return <Register history={this.props.history} auth={this.props.auth} />
     }
 
     return (

@@ -5,6 +5,7 @@ import { createLogger } from '../../utils/logger'
 
 const logger = createLogger('auth')
 
+
 export const handler = async (
     event: CustomAuthorizerEvent
   ): Promise<CustomAuthorizerResult> => {

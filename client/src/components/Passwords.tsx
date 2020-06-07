@@ -11,11 +11,13 @@ import {
   Icon,
   Input,
   Image,
-  Loader
+  Loader,
+  Label
 } from 'semantic-ui-react'
+import Auth from '../api/auth-api';
+
 
 import { createPassword, deletePassword, getPasswords, patchPassword } from '../api/passwords-api'
-import Auth from '../auth/Auth'
 import { Password } from '../types/Password'
 
 interface PasswordsProps {
@@ -29,7 +31,8 @@ interface PasswordsState {
   newPasswordUserName: string,
   newPasswordPassword: string,
   newPasswordUrl: string,
-  loadingPasswords: boolean
+  loadingPasswords: boolean,
+  hidePasswords: boolean[]
 }
 
 export class Passwords extends React.PureComponent<PasswordsProps, PasswordsState> {
@@ -39,7 +42,8 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
     newPasswordUserName: '',
     newPasswordPassword: '',
     newPasswordUrl: '',
-    loadingPasswords: true
+    loadingPasswords: true,
+    hidePasswords: []
   }
 
   handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +60,17 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
 
   handleUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ newPasswordUrl: event.target.value })
+  }
+
+  onDisplayPassword = (pos :number) => {
+    if(this.state.hidePasswords[pos] === true ) {
+      this.state.hidePasswords[pos] = false
+    }
+    else 
+    {
+      this.state.hidePasswords[pos] = true
+    }
+    this.forceUpdate()
   }
 
   onEditButtonClick = (passwordId: string) => {
@@ -152,15 +167,7 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
     return (
       <Grid.Column width={16}>
       <Input
-        action={{
-          color: 'teal',
-          labelPosition: 'left',
-          icon: 'add',
-          content: 'Add New Record',
-          onClick: this.onPasswordCreate
-        }}
         fluid
-        actionPosition="left"
         placeholder="Name of the site password belongs to"
         onChange={this.handleTitleChange}
       />
@@ -173,7 +180,7 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
     <Grid.Column width={16}>
       <Input
         fluid
-        placeholder="Name of the site password belongs to"
+        placeholder="Login for site"
         onChange={this.handleUserNameChange}
       />
     </Grid.Column>
@@ -197,6 +204,14 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
     return (
     <Grid.Column width={16}>
       <Input
+        action={{
+        color: 'teal',
+        labelPosition: 'left',
+        icon: 'add',
+        content: 'Add New Record',
+         onClick: this.onPasswordCreate
+        }}
+        actionPosition="left"
         fluid
         placeholder="Url of the site password belong to"
         onChange={this.handleUrlChange}
@@ -204,8 +219,6 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
     </Grid.Column>
     )
   }
-
-
 
   renderPasswords() {
     if (this.state.loadingPasswords) {
@@ -246,8 +259,18 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
                 {password.userName}
               </Grid.Column>
               <Grid.Column width={3}  floated="right">
-                {password.password} 
-              </Grid.Column>
+              { this.state.hidePasswords[pos] ?  
+              password.password +  " "
+              : 
+              "" 
+              } 
+             <Button             
+              icon color="green"
+               onClick={() => this.onDisplayPassword(pos)}>
+               <Icon name="eye" />
+               {" Show "}
+             </Button>            
+               </Grid.Column>
               <Grid.Column width={3} floated="right">
                 {password.url}
               </Grid.Column>
@@ -264,8 +287,7 @@ export class Passwords extends React.PureComponent<PasswordsProps, PasswordsStat
                   icon
                   color="red"
                   onClick={() => this.onPasswordDelete(password.passwordId)}
-                >
-                  <Icon name="delete" />
+                ><Icon name="delete" />
                 </Button>
               </Grid.Column>
               {password.attachmentUrl && (

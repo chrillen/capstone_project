@@ -1,5 +1,4 @@
 import * as uuid from 'uuid'
-
 import { PaginationItem } from '../models/PaginationItem'
 import { PasswordItem } from '../models/PasswordItem'
 import { PasswordRepository } from '../dataLayer/PasswordRepository'
@@ -50,7 +49,6 @@ export async function getAllPasswordItems(userId: string,limit :number,nextKey :
  */
 export async function createPasswordItem(createPasswordRequest: CreatePasswordRequest,userId :string): Promise<PasswordItem> {
   const passwordId = uuid.v4()
-  //Hämta nyckeln
   const key = await getSecret(userId)
   let newItem = createPasswordRequest as PasswordItem
   newItem.passwordId = passwordId
@@ -70,16 +68,15 @@ export async function createPasswordItem(createPasswordRequest: CreatePasswordRe
    */
 export async function updatePasswordItem(updatePasswordRequest: UpdatePasswordRequest,userId: string,passwordId: string) :Promise<boolean> {
   const validPassword = await passwordRepository.passwordExists(passwordId, userId)
-  globalThis.passw
   if(!validPassword) {
     throw new HttpRequestError(400,'Password does not exist')
   }
-  
+
   const key = await getSecret(userId)
   const newUpdate = updatePasswordRequest as PasswordUpdate
   newUpdate.password = encryptData(key,updatePasswordRequest.password)
-  const result = await passwordRepository.updatePasswordItem(passwordId,userId,newUpdate)
-  return (result == undefined) ? false : true
+  const result = await passwordRepository.updatePasswordItem(userId,passwordId,newUpdate)
+  return (result === undefined) ? false : true
 }
 
   /**

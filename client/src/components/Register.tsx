@@ -9,12 +9,12 @@ import CardHeader from '@material-ui/core/CardHeader';
 import Auth from '../api/auth-api';
 
 
-interface LoginProps {
+interface RegisterProps {
   auth: Auth
   history: any
 }
 
-interface LoginState {
+interface RegisterState {
    password: string,
    username: string,
    isButtonDisabled: boolean,
@@ -22,7 +22,7 @@ interface LoginState {
    error: boolean
 }
 
-export class Login extends React.PureComponent<LoginProps,LoginState> {
+export class Register extends React.PureComponent<RegisterProps,RegisterState> {
   classes: any = makeStyles((theme: Theme) =>
   createStyles({
     container: {
@@ -45,7 +45,7 @@ export class Login extends React.PureComponent<LoginProps,LoginState> {
     }
   }),);
 
-    state: LoginState = {
+    state: RegisterState = {
         password: '',
         username: '',
         isButtonDisabled: false,
@@ -73,21 +73,21 @@ export class Login extends React.PureComponent<LoginProps,LoginState> {
         this.setState({ error: error })
       }
 
-      handleLogin = async () => {
+      handleRegister = async () => {
         try {
-        const result =  await this.props.auth.login(this.state.username,this.state.password)
+        const result =  await this.props.auth.register(this.state.username,this.state.password)
             this.handleError(false);
-            this.handleHelperText('Login Successfully');
+            this.handleHelperText('User Registered Successfully');
             this.props.history.replace('/');
         } catch(error) {
             this.handleError(true);
-            this.handleHelperText('Incorrect username or password')
+            this.handleHelperText('User Could not be saved')
         }
       };
     
        handleKeyPress = async (e:any) => {
         if (e.keyCode === 13 || e.which === 13) {
-          this.handleIsButtonDisabled || await this.handleLogin();
+          this.handleIsButtonDisabled || await this.handleRegister();
         }
       };
     
@@ -95,7 +95,7 @@ export class Login extends React.PureComponent<LoginProps,LoginState> {
         return (
           <form className={this.classes.container} noValidate autoComplete="off">
             <Card className={this.classes.card}>
-              <CardHeader className={this.classes.header} title="Login Password Manager" />
+              <CardHeader className={this.classes.header} title="Register Password Manager" />
               <CardContent>
                 <div>
                   <TextField
@@ -129,9 +129,9 @@ export class Login extends React.PureComponent<LoginProps,LoginState> {
                   size="large"
                   color="primary"
                   className={this.classes.loginBtn}
-                  onClick={()=>this.handleLogin()}
+                  onClick={()=>this.handleRegister()}
                   disabled={this.state.isButtonDisabled}>
-                  Login
+                  Register
                 </Button>
               </CardActions>
             </Card>
